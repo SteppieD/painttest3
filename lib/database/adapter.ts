@@ -358,7 +358,6 @@ export class SupabaseAdapter implements DatabaseAdapter {
 
 // Factory function to get the appropriate adapter
 export function getDatabaseAdapter(): DatabaseAdapter {
-  const useSupabase = process.env.USE_SUPABASE === 'true';
   const hasSupabase = process.env.NEXT_PUBLIC_SUPABASE_URL && 
                       (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
@@ -366,8 +365,10 @@ export function getDatabaseAdapter(): DatabaseAdapter {
   const isVercel = process.env.VERCEL === '1';
   const isProduction = process.env.NODE_ENV === 'production';
 
-  if (useSupabase && hasSupabase) {
+  // Always prefer Supabase if it's configured
+  if (hasSupabase) {
     console.log('Using Supabase database adapter');
+    console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
     return new SupabaseAdapter();
   } else if (isVercel || isProduction) {
     console.log('Using Memory database adapter for serverless environment');
