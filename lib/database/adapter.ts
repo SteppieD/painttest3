@@ -199,14 +199,22 @@ export class SupabaseAdapter implements DatabaseAdapter {
   }
 
   async getCompanyByAccessCode(accessCode: string): Promise<any> {
-    const { data, error } = await this.client
-      .from('companies')
-      .select('*')
-      .eq('access_code', accessCode)
-      .single();
+    try {
+      const { data, error } = await this.client
+        .from('companies')
+        .select('*')
+        .eq('access_code', accessCode)
+        .single();
 
-    if (error) throw error;
-    return data;
+      if (error) {
+        console.error('[SupabaseAdapter] Error fetching company:', error);
+        throw error;
+      }
+      return data;
+    } catch (error) {
+      console.error('[SupabaseAdapter] getCompanyByAccessCode failed:', error);
+      throw error;
+    }
   }
 
   async getCompany(id: number): Promise<any> {
@@ -253,14 +261,36 @@ export class SupabaseAdapter implements DatabaseAdapter {
   }
 
   async createQuote(data: any): Promise<any> {
-    const { data: result, error } = await this.client
-      .from('quotes')
-      .insert(data)
-      .select()
-      .single();
+    try {
+      console.log('[SupabaseAdapter] Creating quote with data:', {
+        company_id: data.company_id,
+        quote_id: data.quote_id,
+        customer_name: data.customer_name
+      });
+      
+      const { data: result, error } = await this.client
+        .from('quotes')
+        .insert(data)
+        .select()
+        .single();
 
-    if (error) throw error;
-    return result;
+      if (error) {
+        console.error('[SupabaseAdapter] Error creating quote:', error);
+        console.error('[SupabaseAdapter] Error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
+        throw error;
+      }
+      
+      console.log('[SupabaseAdapter] Quote created successfully:', result?.id);
+      return result;
+    } catch (error) {
+      console.error('[SupabaseAdapter] createQuote failed:', error);
+      throw error;
+    }
   }
 
   async getQuote(quoteId: string): Promise<any> {
