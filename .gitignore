@@ -44,6 +44,7 @@ next-env.d.ts
 
 # Database
 *.db
+*.db-journal
 *.sqlite
 *.sqlite3
 postgres_data/
