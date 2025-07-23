@@ -13,7 +13,14 @@ export function initDatabase(): Database.Database {
   
   try {
     console.log('Initializing database at:', dbPath);
-    db = new Database(dbPath, { verbose: console.log });
+    
+    // Check if we're in a read-only filesystem (like Vercel)
+    try {
+      db = new Database(dbPath, { verbose: console.log });
+    } catch (dbError) {
+      console.error('Failed to create SQLite database:', dbError);
+      throw new Error('SQLite not available in this environment');
+    }
     
     // Enable foreign keys
     db.pragma('foreign_keys = ON');

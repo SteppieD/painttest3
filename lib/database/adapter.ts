@@ -1,6 +1,7 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import Database from 'better-sqlite3';
 import { initDatabase } from './init';
+import { MemoryAdapter } from './memory-adapter';
 
 // Database adapter interface
 export interface DatabaseAdapter {
@@ -361,14 +362,36 @@ export function getDatabaseAdapter(): DatabaseAdapter {
   const hasSupabase = process.env.NEXT_PUBLIC_SUPABASE_URL && 
                       (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
+  // Check if we're running on Vercel or in a serverless environment
+  const isVercel = process.env.VERCEL === '1';
+  const isProduction = process.env.NODE_ENV === 'production';
+
   if (useSupabase && hasSupabase) {
     console.log('Using Supabase database adapter');
     return new SupabaseAdapter();
+  } else if (isVercel || isProduction) {
+    console.log('Using Memory database adapter for serverless environment');
+    return new MemoryAdapter();
   } else {
-    console.log('Using SQLite database adapter');
-    return new SQLiteAdapter();
+    try {
+      console.log('Using SQLite database adapter');
+      return new SQLiteAdapter();
+    } catch (error) {
+      console.warn('SQLite initialization failed, falling back to memory adapter:', error);
+      return new MemoryAdapter();
+    }
   }
 }
 
-// Export a singleton instance
-export const db = getDatabaseAdapter();
+// Create a singleton instance with lazy initialization
+let dbInstance: DatabaseAdapter | null = null;
+
+export function getDb(): DatabaseAdapter {
+  if (!dbInstance) {
+    dbInstance = getDatabaseAdapter();
+  }
+  return dbInstance;
+}
+
+// Export the database instance getter
+export const db = getDb();
