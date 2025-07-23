@@ -210,10 +210,23 @@ export function ChatInterface({
       try {
         const text = await response.text();
         console.log('[CHAT] Quote API response text:', text);
+        
+        // Handle empty response
+        if (!text) {
+          console.error('Empty response from quote API');
+          throw new Error('Server returned empty response. Check server logs.');
+        }
+        
         result = JSON.parse(text);
       } catch (parseError) {
         console.error('Failed to parse quote response:', parseError);
         console.error('Response status:', response.status);
+        console.error('Response text length:', response.text?.length || 0);
+        
+        // Check for common server errors
+        if (response.status === 500) {
+          throw new Error('Server error: Database might not be initialized. Please check /api/diagnose for details.');
+        }
         throw new Error(`Failed to parse quote response: ${response.status}`);
       }
 

@@ -173,16 +173,39 @@ export async function POST(request: NextRequest) {
     if (error instanceof Error) {
       console.error('[QUOTES API] Error name:', error.name);
       console.error('[QUOTES API] Error message:', error.message);
+      
+      // Check for specific database errors
+      if (error.message.includes('relation') && error.message.includes('does not exist')) {
+        console.error('[QUOTES API] Database tables might not exist. Run the Supabase migration.');
+        return NextResponse.json(
+          { 
+            error: 'Database not initialized', 
+            details: 'Database tables not found. Please run the Supabase migration script.',
+            helpUrl: '/supabase-setup.sql'
+          },
+          { status: 500 }
+        );
+      }
     }
     
-    return NextResponse.json(
-      { 
-        error: 'Failed to create quote', 
-        details: error instanceof Error ? error.message : 'Unknown error',
-        stack: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : undefined) : undefined
-      },
-      { status: 500 }
-    );
+    // Return error response with more details
+    const errorResponse = {
+      error: 'Failed to create quote',
+      details: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString(),
+      environment: {
+        hasSupabase: !!(process.env.NEXT_PUBLIC_SUPABASE_URL),
+        isVercel: process.env.VERCEL === '1',
+        nodeEnv: process.env.NODE_ENV
+      }
+    };
+    
+    // Add stack trace in development
+    if (process.env.NODE_ENV === 'development' && error instanceof Error) {
+      errorResponse['stack'] = error.stack;
+    }
+    
+    return NextResponse.json(errorResponse, { status: 500 });
   }
 }
 
